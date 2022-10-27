@@ -21,13 +21,112 @@ services:
       - zookeeper
     # command: sh -c "(hostname && echo 'Iniciando topics' && kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 2 --topic ventas) && /opt/bitnami/scripts/kafka/entrypoint.sh /run.sh"
 
-  # database:
-  #   image: bitnami/postgresql:12.10.0
-  #   container_name: db-tarea
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     POSTGRESQL_USER: postgres
-  #     POSTGRESQL_PASSWORD: postgres
-  #     POSTGRESQL_DATABASE: tarea
-  #   restart: always
+  database:
+    image: bitnami/postgresql:12.10.0
+    container_name: db-tarea
+    volumes:
+      - ./Carrito/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRESQL_USER: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_DATABASE: tarea
+    restart: always
+
+  pgadmin:
+    container_name: pgadmin4_container
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: postgres@postgres.com
+      PGADMIN_DEFAULT_PASSWORD: postgres
+    ports:
+      - "8080:80"
+#Producer
+  register:
+    build:
+      context: ./Register/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+      - database
+    environment:
+      PORT: 3000
+      kafkaHost: kafka:9092
+    ports:
+      - 3000:3000
+    
+  ventas:
+    build:
+      context: ./Ventas/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      PORT: 3000
+      kafkaHost: kafka:9092
+    ports:
+      - 4000:3000
+
+#   carrito:
+#     build:
+#       context: ./Carrito/
+#       dockerfile: Dockerfile 
+#     restart: always
+#     depends_on:
+#       - zookeeper
+#       - kafka
+#     environment:
+#       PORT: 3000
+#       kafkaHost: kafka:9092
+#     ports:
+#       - 6000:3000
+
+# #Consumers
+
+#   ventasxdias:
+#     build:
+#       context: ./VentasxDias/
+#       dockerfile: Dockerfile 
+#     restart: always
+#     depends_on:
+#       - zookeeper
+#       - kafka
+#     environment:
+#       PORT: 3000
+#       kafkaHost: kafka:9092
+#     ports:
+#       - 7000:3000
+    
+#   stock:
+#     build:
+#       context: ./Stock/
+#       dockerfile: Dockerfile 
+#     restart: always
+#     depends_on:
+#       - zookeeper
+#       - kafka
+#     environment:
+#       PORT: 3000
+#       kafkaHost: kafka:9092
+#     ports:
+#       - 8000:3000
+
+#   gps:
+#     build:
+#       context: ./GPS/
+#       dockerfile: Dockerfile 
+#     restart: always
+#     depends_on:
+#       - zookeeper
+#       - kafka
+#     environment:
+#       PORT: 3000
+#       kafkaHost: kafka:9092
+#     ports:
+#       - 9000:3000
