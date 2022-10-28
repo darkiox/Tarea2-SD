@@ -26,16 +26,15 @@ function getRandomInt(max) {
     return Math.floor(Math.random() * max);
   }
   
-const registrarVenta = async (patente, cliente, cantidad) => {
-    // Agradecimientos a "Richard-Bevan"
-    // https://dirask.com/posts/Node-js-PostgreSQL-Insert-query-DZXq2j
+const registrarVenta = async (patente, cliente, cantidad, hora) => {
     try{
         var queryCreateTable =  `CREATE TABLE IF NOT EXISTS ventas (
             "patente" VARCHAR(50),
             "cliente" VARCHAR(100),
-            "#Sopaipillas" int
+            "#Sopaipillas" int,
+            "hora" VARCHAR(100)
             );`
-        var queryVentas = `INSERT INTO ventas VALUES ('`+patente+`','`+cliente+`','`+cantidad+`');`
+        var queryVentas = `INSERT INTO ventas VALUES ('`+patente+`','`+cliente+`','`+cantidad+`','`+hora+`');`
         var ubicacion = getRandomInt(100).toString()
         var queryUpdate = `UPDATE carritos SET stock = stock -`+cantidad+`, ubicacion = '`+ ubicacion +`' WHERE patente ='`+patente+`';`
         await client.query(queryCreateTable);
@@ -66,11 +65,12 @@ const registrarVenta = async (patente, cliente, cantidad) => {
     }
 }
 app.post("/ventas", async (req, res) => {
-    req.body.time = new Date().getTime();
-    console.log(new Date(req.body.time).toLocaleDateString("es-CL"), '|' , new Date(req.body.time).toLocaleTimeString("es-CL"), '|','"'+req.body.cliente+'"'+" está registrando una venta.");
+    timeNow = new Date().getTime();
+    console.log(new Date(timeNow).toLocaleDateString("es-CL"), '|' , new Date(timeNow).toLocaleTimeString("es-CL"), '|','"'+req.body.cliente+'"'+" está registrando una venta.");
     await producer.connect();
-
-    await registrarVenta(req.body.patente ,req.body.cliente, req.body.cantidad).then(async result => {
+    fechaHora = new Date(timeNow).toLocaleDateString("es-CL") + ',' + new Date(timeNow).toLocaleTimeString("es-CL");
+    req.body.hora = fechaHora;
+    await registrarVenta(req.body.patente ,req.body.cliente, req.body.cantidad, fechaHora).then(async result => {
         if (result){
             await producer.send({
                 topic: 'ventas',
@@ -92,5 +92,5 @@ app.post("/ventas", async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
+    console.log(`Ventas | escuchando en puerto ${port}`);
 });

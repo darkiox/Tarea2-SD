@@ -90,19 +90,20 @@ services:
 
 # #Consumers
 
-#   ventasxdias:
-#     build:
-#       context: ./VentasxDias/
-#       dockerfile: Dockerfile 
-#     restart: always
-#     depends_on:
-#       - zookeeper
-#       - kafka
-#     environment:
-#       PORT: 3000
-#       kafkaHost: kafka:9092
-#     ports:
-#       - 7000:3000
+  ventasdiarias:
+    build:
+      context: ./VentasDiarias/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+      - ventas
+    environment:
+      PORT: 3000
+      kafkaHost: kafka:9092
+    ports:
+      - 7001:3000
     
   stock:
     build:
@@ -112,6 +113,7 @@ services:
     depends_on:
       - zookeeper
       - kafka
+      - ventas
     environment:
       PORT: 3000
       kafkaHost: kafka:9092
