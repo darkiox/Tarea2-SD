@@ -1,3 +1,6 @@
+const express = require("express");
+const app = express();
+
 const { Kafka } = require('kafkajs')
 const { Client } = require('pg')
 const client = new Client({
@@ -12,7 +15,7 @@ client.connect(function(err){
     console.log("Conectado a DB.")
 })
 const port = process.env.PORT;
-
+app.use(express.json());
 const kafka = new Kafka({
     brokers: [process.env.kafkaHost]
 });
@@ -40,9 +43,10 @@ const registrarVenta = async (patente, cliente, cantidad) => {
         await client.query(queryUpdate);
         await producer.send({
             topic: 'ubicacion',
-            messages: [{value: JSON.stringify({"patente": patente, "ubicacion": ubicacion})}]
+            messages: [{value: JSON.stringify({"patente": patente, "ubicacion": ubicacion})}],
+            partition: 0
         }).then(
-            console.log(ubicacion + " => topic: 'ubicacion'")
+            console.log(ubicacion + " => topic: 'ubicacion' | partition: '0'")
         )
         var queryStock = `SELECT stock FROM carritos WHERE patente = '`+patente+`';`;
         const stockCheck = await client.query(queryStock);

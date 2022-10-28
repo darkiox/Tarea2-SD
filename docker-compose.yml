@@ -73,20 +73,20 @@ services:
       kafkaHost: kafka:9092
     ports:
       - 4000:3000
-
-#   carrito:
-#     build:
-#       context: ./Carrito/
-#       dockerfile: Dockerfile 
-#     restart: always
-#     depends_on:
-#       - zookeeper
-#       - kafka
-#     environment:
-#       PORT: 3000
-#       kafkaHost: kafka:9092
-#     ports:
-#       - 6000:3000
+      
+  aviso:
+    build:
+      context: ./Aviso/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      PORT: 3000
+      kafkaHost: kafka:9092
+    ports:
+      - 6000:3000
 
 # #Consumers
 
@@ -117,17 +117,3 @@ services:
       kafkaHost: kafka:9092
     ports:
       - 8000:3000
-
-#   gps:
-#     build:
-#       context: ./GPS/
-#       dockerfile: Dockerfile 
-#     restart: always
-#     depends_on:
-#       - zookeeper
-#       - kafka
-#     environment:
-#       PORT: 3000
-#       kafkaHost: kafka:9092
-#     ports:
-#       - 9000:3000

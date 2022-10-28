@@ -1,7 +1,10 @@
+const express = require("express");
+const app = express();
+
 const { Client } = require('pg')
 
 const { Kafka } = require('kafkajs')
-
+app.use(express.json());
 const client = new Client({
     database: 'tarea',
     host: 'db-tarea',

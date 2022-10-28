@@ -1,3 +1,5 @@
+const express = require("express");
+const app = express();
 
 const { Kafka } = require('kafkajs')
 const { Client } = require('pg')
@@ -99,6 +101,13 @@ app.post("/register", async (req, res) => {
                             messages: [{value: JSON.stringify(req.body)}],
                             partition: 1
                         })
+                        await producer.send({
+                            topic: 'ubicacion',
+                            messages: [{value: JSON.stringify({"patente": patente, "ubicacion": ubicacion})}],
+                            partition: 0
+                        }).then(
+                            console.log(ubicacion + " => topic: 'ubicacion'")
+                        )
                         producer.disconnect().then(
                             res.status(200).json("Maestro sopaipillero PREMIUM registrado.")
                             )
