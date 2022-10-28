@@ -119,3 +119,20 @@ services:
       kafkaHost: kafka:9092
     ports:
       - 8000:3000
+
+  ubicacion:
+    build:
+      context: ./Ubicacion/
+      dockerfile: Dockerfile 
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+      - ventas
+      - aviso
+    environment:
+      PORT: 3000
+      kafkaHost: kafka:9092
+    ports:
+      - 9000:3000
+    
