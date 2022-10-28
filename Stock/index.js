@@ -1,59 +1,69 @@
-const express = require("express");
-const cors = require("cors");
+const { Client } = require('pg')
+
 const { Kafka } = require('kafkajs')
 
+const client = new Client({
+    database: 'tarea',
+    host: 'db-tarea',
+    user: 'postgres',
+    password: 'postgres',
+    port: 5432,
+})
+client.connect(function(err){
+    if (err) console.log("Error al conectar a DB");
+    console.log("Conectado a DB.")
+})
 const port = process.env.PORT;
-const app = express();
-
-app.use(cors());
-app.use(express.json());
 
 const kafka = new Kafka({
     brokers: [process.env.kafkaHost]
 });
 
-var white_list = new Map();
-var black_list = [];
-
-const auth = async () => {
-    const consumer = kafka.consumer({ groupId: 'auth', fromBeginning: true });
+var RenovarStock = [];
+var ncarritos = 0;
+const stock = async () => {
+    const consumer = kafka.consumer({ groupId: 'stock', fromBeginning: true });
     await consumer.connect();
-    await consumer.subscribe({ topic: 'auth' });
+    await consumer.subscribe({ topic: 'stock' });
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
             if (message.value){
                 var data = JSON.parse(message.value.toString());
-                if (black_list.includes(data.user)){
-                    console.log(new Date(data.time).toLocaleDateString("es-CL"), new Date(data.time).toLocaleTimeString("es-CL"), data.user, "esta baneado.");
-                } else if(white_list.has(data.user)){
-                    last5 = white_list.get(data.user);
-                    if (last5.length > 4) last5.shift();
-                    last5.push(data);
-                    if (last5.length == 5){
-                        diff = last5[4].time - last5[0].time;
-                        if (diff < 60000){
-                            black_list.push(data.user);
-                            white_list.delete(data.user);
-                            console.log(new Date(data.time).toLocaleDateString("es-CL"), new Date(data.time).toLocaleTimeString("es-CL"), data.user, "fue baneado.");
-                        }
+                var count = "SELECT count(*) FROM carritos WHERE stock < 20"
+                await client.query(count, async (err, res)=> {
+                    if (err){
+                        console.log("Error en count.")
                     } else{
-                        console.log(new Date(data.time).toLocaleDateString("es-CL"), new Date(data.time).toLocaleTimeString("es-CL"), data.user, "ingreso.");
+                        console.log("n carritos:" + res)
+                        carritos = res
                     }
-                } else{
-                    console.log(new Date(data.time).toLocaleDateString("es-CL"), new Date(data.time).toLocaleTimeString("es-CL"), data.user, "ingreso.");
-                    last5 = [data];
-                    white_list.set(data.user, last5);
+                })
+                for (var i = 0; i < carritos; i+=5) {
+                    var query = "SELECT patente , stock from carritos WHERE stock < 20 LIMIT 5 OFFSET "+i+";"
+                    await client.query(query, async (err, res)=> {
+                        if (err){
+                            console.log("Error en query.")
+                        } else{
+                            for (var j = 0; j < 5; j++) {
+                                try{
+                                    RenovarStock.includes(res.rows[j].patente)
+                                }
+                                catch{
+                                    break;
+                                }
+                            }
+                        }
+                    })
                 }
             }
         },
-      })
+    })
 }
-
-app.get("/blocked", async (req, res) => {
-    res.status(200).json({"users-blocked": black_list});
+app.get("/Stock", async (req, res) => {
+    res.status(200).json({"Carritos a renovar stock": RenovarStock});
 });
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`);
-    auth();
+    stock();
 });

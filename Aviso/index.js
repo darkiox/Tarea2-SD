@@ -32,10 +32,9 @@ const ingresarUsuario = async (nombre, apellido, rut, correodueno, patente, prem
             patente VARCHAR(10), 
             premium INT, 
             stock INT, 
-            ubicacion VARCHAR(10),
-            profugo INT
+            ubicacion VARCHAR(10)
             );`
-        var query2 = `INSERT INTO carritos VALUES ('`+nombre+`','`+apellido+`','`+rut+`','`+correodueno+`','`+patente+`','`+premium+`','`+stock+`','`+ubicacion+`','`+0+`');`
+        var query2 = `INSERT INTO carritos VALUES ('`+nombre+`','`+apellido+`','`+rut+`','`+correodueno+`','`+patente+`','`+premium+`','`+stock+`','`+ubicacion+`');`
         await client.query(query1);
         await client.query(query2);
         return true;
@@ -55,8 +54,7 @@ const usuarioRepetido = async (rut) =>{
             patente VARCHAR(10), 
             premium INT, 
             stock INT, 
-            ubicacion VARCHAR(10),
-            profugo INT
+            ubicacion VARCHAR(10)
             );`
         await client.query(query1)
         var querySelect = `SELECT rut FROM carritos WHERE "rut" = '`+rut+`';`
@@ -80,10 +78,14 @@ app.post("/register", async (req, res) => {
     await usuarioRepetido(req.body.rut).then(async result =>{
         if(result){
             producer.disconnect().then(
-                res.status(403).json("El maestro sopaipillero ya existe."),
+                res.status(403).json("El mastro sopaipillero ya existe."),
                 )
-                console.log("El maestro sopaipillero '"+req.body.nombre+"' ya existe.")
+                console.log("El mastro sopaipillero '"+req.body.nombre+"' ya existe.")
         }else{
+            await producer.send({
+                topic: 'register',
+                messages: [{value: JSON.stringify(req.body)}]
+            })
             await ingresarUsuario(  req.body.nombre, 
                                     req.body.apellido,
                                     req.body.rut,
@@ -91,29 +93,12 @@ app.post("/register", async (req, res) => {
                                     req.body.patente,
                                     req.body.premium,
                                     req.body.stock,
-                                    req.body.ubicacion).then(async result => {
+                                    req.body.ubicacion).then(result => {
                 if(result){
-                    if (req.body.premium == 1){
-                        await producer.send({
-                            topic: 'register',
-                            messages: [{value: JSON.stringify(req.body)}],
-                            partition: 1
-                        })
-                        producer.disconnect().then(
-                            res.status(200).json("Maestro sopaipillero PREMIUM registrado.")
-                            )
-                        console.log("Maestro sopaipillero premium "+req.body.nombre+" registrado correctamente.")
-                    }else{
-                        await producer.send({
-                            topic: 'register',
-                            messages: [{value: JSON.stringify(req.body)}],
-                            partition: 0
-                        })
-                        producer.disconnect().then(
-                            res.status(200).json("Maestro sopaipillero registrado.")
-                            )
-                            console.log("Maestro sopaipillero "+req.body.nombre+" registrado correctamente.")
-                        }
+                    producer.disconnect().then(
+                        res.status(200).json("Mastro sopaipillero registrado.")
+                    )
+                    console.log("Maestro sopaipillero "+req.body.nombre+" registrado correctamente.")
                 }else{
                     producer.disconnect().then(
                         res.status(500).json("Error 500.")

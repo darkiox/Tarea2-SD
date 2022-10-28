@@ -1,4 +1,3 @@
-const express = require("express");
 const { Kafka } = require('kafkajs')
 const { Client } = require('pg')
 const client = new Client({
@@ -13,29 +12,49 @@ client.connect(function(err){
     console.log("Conectado a DB.")
 })
 const port = process.env.PORT;
-const app = express();
-
-app.use(express.json());
 
 const kafka = new Kafka({
     brokers: [process.env.kafkaHost]
 });
 
 const producer = kafka.producer();
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+  }
+  
 const registrarVenta = async (patente, cliente, cantidad) => {
     // Agradecimientos a "Richard-Bevan"
     // https://dirask.com/posts/Node-js-PostgreSQL-Insert-query-DZXq2j
     try{
-        var query1 =  `CREATE TABLE IF NOT EXISTS ventas (
+        var queryCreateTable =  `CREATE TABLE IF NOT EXISTS ventas (
             "patente" VARCHAR(50),
             "cliente" VARCHAR(100),
             "#Sopaipillas" int
             );`
-        var query2 = `INSERT INTO ventas VALUES ('`+patente+`','`+cliente+`','`+cantidad+`');`
-        var query3 = `UPDATE carritos SET stock = stock -`+cantidad+`, ubicacion = '`+Math.random().toString()+`' WHERE patente ='`+patente+`';`
-        await client.query(query1);
-        await client.query(query2);
-        await client.query(query3);
+        var queryVentas = `INSERT INTO ventas VALUES ('`+patente+`','`+cliente+`','`+cantidad+`');`
+        var ubicacion = getRandomInt(100).toString()
+        var queryUpdate = `UPDATE carritos SET stock = stock -`+cantidad+`, ubicacion = '`+ ubicacion +`' WHERE patente ='`+patente+`';`
+        await client.query(queryCreateTable);
+        await client.query(queryVentas);
+        await client.query(queryUpdate);
+        await producer.send({
+            topic: 'ubicacion',
+            messages: [{value: JSON.stringify({"patente": patente, "ubicacion": ubicacion})}]
+        }).then(
+            console.log(ubicacion + " => topic: 'ubicacion'")
+        )
+        var queryStock = `SELECT stock FROM carritos WHERE patente = '`+patente+`';`;
+        const stockCheck = await client.query(queryStock);
+        if (stockCheck.rows[0]){
+            console.log("Nuevo stock: "+ stockCheck.rows[0].stock);
+            await producer.send({
+                topic: 'stock',
+                messages: [{value: JSON.stringify({"patente": patente, "stock": stockCheck.rows[0].stock})}]
+            }).then(
+                console.log(stockCheck.rows[0].stock + " => topic: 'stock'")
+            )
+        }
         return true;
     } catch (error) {
         console.log("Ha ocurrido un error en el ingreso a la base de datos.")
