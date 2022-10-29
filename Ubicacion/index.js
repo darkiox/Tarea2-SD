@@ -22,7 +22,6 @@ const Ubicaciones = async () => {
     const consumer = kafka.consumer({ groupId: 'ubicacion', fromBeginning: true });
     await consumer.connect();
     await consumer.subscribe({ topic: 'ubicacion', partition: '0' });
-    var daySaleArray = [];
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
             if (message.value){
