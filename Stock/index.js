@@ -11,7 +11,6 @@ const kafka = new Kafka({
 });
 
 var RenovarStock = [];
-var ncarritos = 0;
 const stock = async () => {
     const consumer = kafka.consumer({ groupId: 'stock', fromBeginning: true });
     await consumer.connect();
